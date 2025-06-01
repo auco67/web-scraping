@@ -3,7 +3,7 @@
 ## 使用方法（Windowsの場合）
 1. githubからリポジトリをgit cloneする
     ```
-    git clone https://github.com/takahiroanno2024/poster-map.git
+    git clone https://github.com/auco67/web-scraping.git
     ```
 2. main.batを実行する
     
