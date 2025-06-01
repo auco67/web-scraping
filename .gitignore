@@ -1,0 +1,5 @@
+/build
+/venv
+/dist/downloaded_pdfs
+
+main.spec
