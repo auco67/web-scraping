@@ -20,7 +20,7 @@ class Scraping:
         """
         try:
             response = requests.get(self.url)
-            # HTTPステータスコードが200番台（成功）でない場合、HTTPError
+            # HTTPステータスコードが200番台（成功）でない場合、HTTPErrorを発生させる
             response.raise_for_status()
             return response.text
         
