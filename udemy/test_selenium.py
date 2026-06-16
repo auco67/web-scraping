@@ -2,6 +2,9 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from time import sleep
+import requests
+import re
+import os
 
 def main():
     target_url = "https://thebridge.jp/"
@@ -46,14 +49,35 @@ def main():
             # 画面上でEndキーを押下する
             driver.find_element(By.TAG_NAME, "body").send_keys(Keys.END)
             sleep(3)
+        
+        try:
+            # 画像ファイルのURLを取得する
+            article_img_xpath = "//article/img"
+            images = driver.find_elements(By.XPATH, article_img_xpath)
 
-        h3_a_xpath = "//h3/a"
-        for elem in driver.find_elements(By.XPATH, h3_a_xpath):
-            print(elem.text)
-            print(elem.get_attribute("href"))
+            # 格納先フォルダを生成する
+            path = r"imgs\bridge"
+            os.makedirs(path, exist_ok=True)
+
+            for index, image in enumerate(images):
+                filename = f"image_{index}.png"
+                image_path = os.path.join(path, filename)
+                image_url = image.get_attribute("src")
+                url_patarn = re.compile("^(http|https)://")
+                res = url_patarn.match(image_url)
+
+                if res:
+                    response = requests.get(image_url, stream=True)
+
+                    with open(image_path, "wb") as f:
+                        f.write(response.content)
+
+        except Exception as e:
+            print(f"{index}番目の画像ダウンロード・保存時にエラーが発生しました。:{e}")
+            print("画像URL:", image_url)
 
     except Exception as e:
-        print(f"アイテムが表示できませんでした。{e}")
+        print(f"アイテムが表示できませんでした。:{e}")
 
     finally:
         driver.quit()
