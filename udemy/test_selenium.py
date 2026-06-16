@@ -8,7 +8,7 @@ def main():
 
     # ヘッドレスモードに設定
     options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
+    # options.add_argument("--headless")
     
     driver = webdriver.Chrome(options=options)
     driver.get(target_url)
@@ -31,10 +31,32 @@ def main():
 
     sleep(10)
 
-    h3_a_xpath = "//h3/a"
-    for elem in driver.find_elements(By.XPATH, h3_a_xpath):
-        print(elem.text)
-        print(elem.get_attribute("href"))
+    display_count = 100
+
+    try:
+        if display_count > 12:
+            scroll_count = int(display_count/12)+1
+        else:
+            scroll_count = 1
+
+        for i in range(scroll_count):
+            # スクロールするjavascriptを実行する           
+            # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+            # 画面上でEndキーを押下する
+            driver.find_element(By.TAG_NAME, "body").send_keys(Keys.END)
+            sleep(3)
+
+        h3_a_xpath = "//h3/a"
+        for elem in driver.find_elements(By.XPATH, h3_a_xpath):
+            print(elem.text)
+            print(elem.get_attribute("href"))
+
+    except Exception as e:
+        print(f"アイテムが表示できませんでした。{e}")
+
+    finally:
+        driver.quit()
 
 if __name__ == "__main__":
     main()
