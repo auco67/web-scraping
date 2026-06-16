@@ -3,3 +3,5 @@
 /dist/downloaded_pdfs
 
 main.spec
+
+__pycache__/

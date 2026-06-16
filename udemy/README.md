@@ -1,4 +1,125 @@
-# Udemy 演習問題
+# Udemy講座
+
+Udemiy講座の[Pythonによるビジネスに役立つWebスクレイピング（BeautifulSoup・Selenium・Requests）](https://www.udemy.com/course/python-web-scraping-with-beautifulsoup-selenium-requests/?couponCode=MT260608JP)を学習する
+
+## 学習内容
+
+- `Requests`や`BeautifulSoup4`ライブラリを用いてWebサイトをスクレイピングする
+- `Selenium`ライブラリを用いて動的なWebサイトをスクレイピングする
+
+## `Requests`や`BeautifulSoup4`ライブラリを用いてWebサイトをスクレイピングする
+
+- `Requests`：HTTPリクエストを送信してHTMLを取得するための標準的なライブラリ
+- `BeautifulSoup4`：HTMLの構造（DOM）を解析して、特定のタグやクラスのデータを抽出する。Requestsと組み合わせて使う
+
+1. ライブラリをインストールする
+
+    ```
+    PS C:\Users\user\Documents\github\web-scraping> pip install requests, beautifulsoup4
+    ```
+
+1. `Scraping`クラスを作成する
+
+    `src/lib/scraping.py`
+
+    ```
+    import os
+
+    import requests
+    from bs4 import BeautifulSoup
+
+    class Scraping:
+        """ウェブサイトから情報を自動的に収集し、必要なデータを抽出・整形する
+        
+        Args:
+            url(str): スクレイピング対象のウェブサイトのURL
+        """
+        def __init__(self, url:str) -> None:
+            self.url = url
+        
+        def get_html_in_text_format(self) -> str:
+            """テキスト形式でHTMLを取得する
+
+            Returns:
+                (str): テキスト形式のHTML文字列
+            """
+            try:
+                response = requests.get(self.url)
+                # HTTPステータスコードが200番台（成功）でない場合、HTTPErrorを発生させる
+                response.raise_for_status()
+                return response.text
+            
+            except requests.exceptions.RequestException as e:
+                print(f"URLの取得中にエラーが発生しました: {e}")
+                return e.__class__.__name__
+            
+        def convert_to_tree_structure(self, html_in_text_format:str) -> BeautifulSoup:
+            """ツリー構造に変換する
+
+            Args:
+                html_in_text_format(str):テキスト形式のHTML文字列
+
+            Returns:
+                ツリー構造化されたオブジェクト(BeautifulSoup): 
+            """
+            return BeautifulSoup(html_in_text_format, 'html.parser')
+        
+        def get_pdf_links_tag(self, soup:BeautifulSoup) -> list[str]:
+            """aタグを検索しPDFのリンク一覧を返す
+
+            Args:
+                soup(BeautifulSoup):ツリー構造化されたオブジェクト
+
+            Returns:
+                pdf_links(list): PDFファイルのリンク一覧
+            """
+
+            pdf_links = []
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+
+                # リンクの最後がpdfの拡張子がある場合
+                if href.endswith('.pdf') :
+                    # 相対URLを絶対URLに変換
+                    if not href.startswith(('http://', 'https://')):
+                        href = requests.compat.urljoin(self.url, href)
+                    pdf_links.append(href)
+            return pdf_links
+        
+        def is_exist_pdf_links(self, pdf_links:list) -> bool:
+            """PDFファイルのリンク一覧の存在確認
+
+            Args:
+                pdf_links(list):PDFファイルのリンク一覧
+
+            Returns:
+                (bool): True あり false なし
+            """
+            if len(pdf_links) == 0:
+                return False
+            return True
+        
+        def download_pdf_files(self, pdf_links:list, output_folder='downloaded_pdfs') -> None:
+            # ダウンロードフォルダを作成
+            if not os.path.exists(output_folder):
+                os.makedirs(output_folder)
+
+            for i, pdf_url in enumerate(pdf_links):
+
+                # ファイル名をURLから取得
+                file_name = os.path.join(output_folder, os.path.basename(pdf_url))
+
+                try:
+                    pdf_response = requests.get(pdf_url, stream=True)
+                    pdf_response.raise_for_status()
+
+                    with open(file_name, 'wb') as f:
+                        for chunk in pdf_response.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                    print(f"ダウンロード完了: {file_name}")
+                except requests.exceptions.RequestException as e:
+                    print(f"PDFのダウンロード中にエラーが発生しました: {e}")
+    ```
 
 1. [価格ドットコム>家電>扇風機・サーキュレーター>人気売れ筋ランキング](https://kakaku.com/kaden/fan/ranking_2152/)のWebサイトから`商品名`、`URL`を取得する
 
@@ -402,4 +523,268 @@
     　ラウの打席では際どい投球が2球、ボール判定に。MLB公式サイトの配球チャートではストライクのコースに入っていただけに、「際どい所に行っていたので、迷いましたけど、チャレンジした方が良かったのかなと。結果的には」と振り返った。
 
     　3失点以上を喫するのは今季初。防御率は今季初めて1点台に乗って1.06となった。「基本的には（ABSの要求は）キャッチャーがやるという方針ではあるので。相当自信がない限りやらないんですけど、シチュエーションがシチュエーションだったので、やっても良かったのかなと思います」と話した。Full-Count編集部
+    ```
+
+## `Selenium`ライブラリを用いて動的なWebサイトをスクレイピングする
+
+- `Selenium`:ブラウザ自動操作ライブラリ
+
+1. ライブラリをインストールする
+
+    ```
+    PS C:\Users\user\Documents\github\web-scraping> pip install selenium
+    ```
+
+1. `Selenium`のChromeドライバーを用いて、ブラウザでWEBサイト[BRIDGE](https://thebridge.jp/)を起動する
+
+    `udemy/test_selenium.py`
+
+    ```
+    from selenium import webdriver
+    from time import sleep
+
+    def main():
+        target_url = "https://thebridge.jp/"
+        driver = webdriver.Chrome()
+        driver.get(target_url)
+
+        sleep(10)
+
+    if __name__ == "__main__":
+        main()
+    ```
+
+    ```
+    PS C:\Users\user\Documents\github\web-scraping> python -m udemy.test_selenium
+    ```
+
+    次の通りChromeが起動し、画面上層部に「Chromeは自動テスト ソフトウェアによって制御されています」と表示される
+
+    ![image](../imgs/bridge_search.png)
+
+1. `Selenium`を用いて、WEBサイト[BRIDGE](https://thebridge.jp/)でキーワード検索する
+
+    `Selenium`で検索する主なメソッド
+
+    |method|description|
+    |---|---|
+    |find_element(By.ID,id属性)|id属性で要素を検索する|
+    |find_element(By.NAME, name属性)|name属性で要素を検索する|
+    |find_element(By.CLASS_NAME, class属性)|class属性で要素を検索する|
+    |find_element(By.TAG_NAME, タグ名)|タグ名で要素を検索する|
+    |find_element(By.XPATH, XPath)|XPathで要素を検索する|
+    |find_element(By.CSS_SELECTOR, CSSセレクタ)|CSSセレクタで要素を検索する|
+    |find_element(By.LINK_TEXT, リンクテキスト)|リンクテキストで要素を検索する|
+    |find_element(By.PARTIAL_LINK_TEXT, リンクテキストの一部)|リンクテキストの一部で要素を検索する|
+
+    `Selenium`で扱う特殊キー入力
+
+    |key|description|
+    |---|---|
+    |Keys.ENTER|Enterキー|
+    |Keys.SHIFT|Shiftキー|
+    |Keys.TAB|Tabキー|
+    |Keys.ALT|Altキー|
+    |Keys.CONTROL|Ctrキー|
+    |Keys.UP|↑キー|
+    |Keys.DOWN|↓キー|
+    |Keys.LEFT|←キー|
+    |Keys.RIGHT|→キー|
+
+    `udemy/test_selenium.py`
+
+    ```
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.common.keys import Keys
+    from time import sleep
+
+    def main():
+        target_url = "https://thebridge.jp/"
+        driver = webdriver.Chrome()
+        driver.get(target_url)
+
+        search_word = "フィンテック"
+
+        button_xpath = "//button[contains(@class, 'header-search')]"
+        search_button = driver.find_element(By.XPATH, button_xpath)
+        search_button.click()
+
+        input_xpath = "//input[@type='search']"
+        search_input = driver.find_element(By.XPATH, input_xpath)
+        search_input.send_keys(search_word)
+
+        # フォームをSubmitする場合
+        # search_input.submit()
+
+        # フォームでEnterキーを押下する場合
+        search_input.send_keys(Keys.ENTER)
+
+        sleep(10)
+
+    if __name__ == "__main__":
+        main()
+    ```
+
+    ```
+    PS C:\Users\user\Documents\github\web-scraping> python -m udemy.test_selenium
+    ```
+
+    次の通り表示されれば成功！
+
+    ![image](../imgs/bridge_search_run.png)
+
+1. 検索結果で表示された記事のタイトルとURLを取得する
+
+    `udemy/test_selenium.py`
+
+    ```
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.common.keys import Keys
+    from time import sleep
+
+    def main():
+        target_url = "https://thebridge.jp/"
+        driver = webdriver.Chrome()
+        driver.get(target_url)
+
+        search_word = "フィンテック"
+
+        button_xpath = "//button[contains(@class, 'header-search')]"
+        search_button = driver.find_element(By.XPATH, button_xpath)
+        search_button.click()
+
+        input_xpath = "//input[@type='search']"
+        search_input = driver.find_element(By.XPATH, input_xpath)
+        search_input.send_keys(search_word)
+
+        # フォームをSubmitする場合
+        # search_input.submit()
+
+        # フォームでEnterキーを押下する場合
+        search_input.send_keys(Keys.ENTER)
+
+        sleep(10)
+
+        h3_a_xpath = "//h3/a"
+        for elem in driver.find_elements(By.XPATH, h3_a_xpath):
+            print(elem.text)
+            print(elem.get_attribute("href"))
+
+    if __name__ == "__main__":
+        main()
+    ```
+
+    ```
+    PS C:\Users\user\Documents\github\web-scraping> python -m udemy.test_selenium
+    ```
+
+    ```
+    a16z初の湾岸投資、サウジのフィンテックStitchがシリーズAで2,500万ドルを調達
+    https://thebridge.jp/2026/05/a16z-saudi-fintech-stitch-25m-series-a
+    トークン化がもたらす金融変革の「3つの注目分野」——米国フィンテック専門VCが見る最前線
+    https://thebridge.jp/2026/04/tokenization-financial-transformation-three-sectors-us-fintech-vc
+    ブロックチェーン・フィンテック向け決済インフラのTazapay、Circleが主導するシリーズB拡張ラウンドで総額3,600万ドル調達
+    https://thebridge.jp/2026/04/tazapay-series-b-circle-36m
+    2024年上半期テック投資動向：好調なAIとサイバーセキュリティ、1.7億ドル集めたフィンテックのTallyは事業を停止
+    https://thebridge.jp/2024/08/tech-investment-trends-in-the-first-half-of-2024
+    CyberAgent Pitching Arena 2024（４）：インドネシアの建設現場の遅延を、資材調達とフィンテックで解決する「GoCement」
+    https://thebridge.jp/2024/06/capa-2024-gocement-cyberagentcapital-insight
+    フィンテックユニコーンのCircle、BitoGroupや台湾ファミマと提携——コンビニポイントをUSDCに交換可能に
+    https://thebridge.jp/2023/11/circle-bitogroup-taiwan-familymart-partnership
+    シンガポール発フィンテックコミュニティ「Elevandi」、日本法人が設立——世界のフィンテックと交流活性化狙う
+    https://thebridge.jp/2023/10/elevandi-launches-japanese-subsidiary
+    SaaSはフィンテックと融合するーーALL STAR SAAS FUNDが新ファンド、運用総額は1,300億円に
+    https://thebridge.jp/2023/08/all-star-saas-fund-launched-3rd-fund-raising-110m
+    2023年Q1で世界唯一のフィンテックユニコーンクラブ入り、エジプト「MNT-Halan」はどのように生まれたか？
+    https://thebridge.jp/2023/05/all-about-mnt-halan
+    ウェルネス業界向けSaaS「hacomono」運営、38.5億円をシリーズC調達——フィンテック事業に参入へ
+    https://thebridge.jp/2023/04/hacomono-series-c-round-funding
+    インフキュリオン、今年の日本のフィンテック業界を占う10大キーワードを発表
+    https://thebridge.jp/2023/01/infcurion-top-ten-keywords-2023
+    #34 フィンテックのレジェンドが考える、web3ビジネスの広げ方 〜Nudge沖田CEO × ACV唐澤・村上〜
+    https://thebridge.jp/2022/12/how-to-expand-web3-business-accentureventures
+    ```
+
+1. `Selenium`のヘッドレスモードで実行する
+
+    `Selenium`のヘッドレスモードは、Chromeドライバーを用いてブラウザ操作する際、ブラウザを表示させず裏で実行させる方法。これにより実行速度が上がる。
+
+    `udemy/test_selenium.py`
+
+    ```
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.common.keys import Keys
+    from time import sleep
+
+    def main():
+        target_url = "https://thebridge.jp/"
+
+        # ヘッドレスモードに設定
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless")
+        
+        driver = webdriver.Chrome(options=options)
+        driver.get(target_url)
+
+        search_word = "フィンテック"
+
+        button_xpath = "//button[contains(@class, 'header-search')]"
+        search_button = driver.find_element(By.XPATH, button_xpath)
+        search_button.click()
+
+        input_xpath = "//input[@type='search']"
+        search_input = driver.find_element(By.XPATH, input_xpath)
+        search_input.send_keys(search_word)
+
+        # フォームをSubmitする場合
+        # search_input.submit()
+
+        # フォームでEnterキーを押下する場合
+        search_input.send_keys(Keys.ENTER)
+
+        sleep(10)
+
+        h3_a_xpath = "//h3/a"
+        for elem in driver.find_elements(By.XPATH, h3_a_xpath):
+            print(elem.text)
+            print(elem.get_attribute("href"))
+
+    if __name__ == "__main__":
+        main()
+    ```
+
+    ```
+    PS C:\Users\user\Documents\github\web-scraping> python -m udemy.test_selenium
+    ```
+
+    Chromeが起動せず、次のレスポンスが返ってくれば成功！
+
+    ```
+    a16z初の湾岸投資、サウジのフィンテックStitchがシリーズAで2,500万ドルを調達
+    https://thebridge.jp/2026/05/a16z-saudi-fintech-stitch-25m-series-a
+    トークン化がもたらす金融変革の「3つの注目分野」——米国フィンテック専門VCが見る最前線
+    https://thebridge.jp/2026/04/tokenization-financial-transformation-three-sectors-us-fintech-vc
+    ブロックチェーン・フィンテック向け決済インフラのTazapay、Circleが主導するシリーズB拡張ラウンドで総額3,600万ドル調達
+    https://thebridge.jp/2026/04/tazapay-series-b-circle-36m
+    2024年上半期テック投資動向：好調なAIとサイバーセキュリティ、1.7億ドル集めたフィンテックのTallyは事業を停止
+    https://thebridge.jp/2024/08/tech-investment-trends-in-the-first-half-of-2024
+    CyberAgent Pitching Arena 2024（４）：インドネシアの建設現場の遅延を、資材調達とフィンテックで解決する「GoCement」
+    https://thebridge.jp/2024/06/capa-2024-gocement-cyberagentcapital-insight
+    フィンテックユニコーンのCircle、BitoGroupや台湾ファミマと提携——コンビニポイントをUSDCに交換可能に
+    https://thebridge.jp/2023/11/circle-bitogroup-taiwan-familymart-partnership
+    シンガポール発フィンテックコミュニティ「Elevandi」、日本法人が設立——世界のフィンテックと交流活性化狙う
+    https://thebridge.jp/2023/10/elevandi-launches-japanese-subsidiary
+    SaaSはフィンテックと融合するーーALL STAR SAAS FUNDが新ファンド、運用総額は1,300億円に
+    https://thebridge.jp/2023/08/all-star-saas-fund-launched-3rd-fund-raising-110m
+    2023年Q1で世界唯一のフィンテックユニコーンクラブ入り、エジプト「MNT-Halan」はどのように生まれたか？
+    https://thebridge.jp/2023/05/all-about-mnt-halan
+    ウェルネス業界向けSaaS「hacomono」運営、38.5億円をシリーズC調達——フィンテック事業に参入へ
+    https://thebridge.jp/2023/04/hacomono-series-c-round-funding
+    インフキュリオン、今年の日本のフィンテック業界を占う10大キーワードを発表
+    https://thebridge.jp/2023/01/infcurion-top-ten-keywords-2023
+    #34 フィンテックのレジェンドが考える、web3ビジネスの広げ方 〜Nudge沖田CEO × ACV唐澤・村上〜
+    https://thebridge.jp/2022/12/how-to-expand-web3-business-accentureventures
     ```
